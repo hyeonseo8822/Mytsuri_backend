@@ -11,7 +11,8 @@ const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
-const { User, Festival, Review } = require("./models");
+const { User, Festival, Review, BannerSlide, Category, City } = require("./models");
+const { bannerSlides, categories, cities, festivals } = require("./data/homeData");
 
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(express.json());
@@ -147,6 +148,51 @@ app.post("/api/festivals/:festivalId/reviews", async (req, res) => {
 });
 
 // ------------------------------------------------------------------
+// Home Data
+// ------------------------------------------------------------------
+app.get("/api/home/banners", async (req, res) => {
+	const banners = await BannerSlide.find().sort({ slide_id: 1 }).lean();
+	res.status(200).json(banners.map((slide) => ({
+		id: slide.slide_id,
+		image: slide.image,
+		title: slide.title,
+		subtitle: slide.subtitle
+	})));
+});
+
+app.get("/api/home/categories", async (req, res) => {
+	const categories = await Category.find().sort({ category_id: 1 }).lean();
+	res.status(200).json(categories.map((category) => ({
+		id: category.category_id,
+		label: category.label,
+		icon: category.icon
+	})));
+});
+
+app.get("/api/home/cities", async (req, res) => {
+	const cities = await City.find().sort({ city_id: 1 }).lean();
+	res.status(200).json(cities.map((city) => ({
+		id: city.city_id,
+		label: city.label,
+		image: city.image
+	})));
+});
+
+app.get("/api/home/festivals", async (req, res) => {
+	const festivals = await Festival.find().sort({ created_at: -1 }).limit(20).lean();
+	res.status(200).json(festivals.map((festival) => ({
+		id: festival._id,
+		image: festival.image,
+		title: festival.name,
+		location: festival.location || `${festival.state || ""} ${festival.city || ""}`.trim(),
+		date: festival.date_label || "",
+		rating: festival.avg_rating,
+		reviewCount: festival.review_count,
+		bookmarkCount: festival.bookmark_count
+	})));
+});
+
+// ------------------------------------------------------------------
 // Lists
 // ------------------------------------------------------------------
 app.get("/api/lists", authenticateToken, async (req, res) => {
@@ -202,6 +248,9 @@ const startServer = async () => {
 		const userCount = await User.countDocuments();
 		const festivalCount = await Festival.countDocuments();
 		const reviewCount = await Review.countDocuments();
+		const bannerCount = await BannerSlide.countDocuments();
+		const categoryCount = await Category.countDocuments();
+		const cityCount = await City.countDocuments();
 
 		if (userCount === 0) {
 			await User.create({
@@ -213,19 +262,59 @@ const startServer = async () => {
 		}
 
 		if (festivalCount === 0) {
-			await Festival.create({
-				name: "도쿄 여름축제",
-				state: "도쿄",
-				city: "시부야",
-				address: "Shibuya, Tokyo",
-				latitude: 35.6595,
-				longitude: 139.7005,
-				start_date: new Date("2026-07-20"),
-				end_date: new Date("2026-07-23"),
-				avg_rating: 4.7,
-				review_count: 1,
-				bookmark_count: 12
-			});
+			await Festival.insertMany(festivals);
+		} else {
+			await Festival.bulkWrite(
+				festivals.map((festival) => ({
+					updateOne: {
+						filter: { name: festival.name },
+						update: { $set: festival },
+						upsert: true
+					}
+				}))
+			);
+		}
+
+		if (bannerCount === 0) {
+			await BannerSlide.insertMany(bannerSlides);
+		} else {
+			await BannerSlide.bulkWrite(
+				bannerSlides.map((slide) => ({
+					updateOne: {
+						filter: { slide_id: slide.slide_id },
+						update: { $set: slide },
+						upsert: true
+					}
+				}))
+			);
+		}
+
+		if (categoryCount === 0) {
+			await Category.insertMany(categories);
+		} else {
+			await Category.bulkWrite(
+				categories.map((category) => ({
+					updateOne: {
+						filter: { category_id: category.category_id },
+						update: { $set: category },
+						upsert: true
+					}
+				}))
+			);
+		}
+
+		if (cityCount === 0) {
+			await City.insertMany(cities);
+		} else {
+			await City.bulkWrite(
+				cities.map((city) => ({
+					updateOne: {
+						filter: { city_id: city.city_id },
+						update: { $set: city },
+						upsert: true
+					}
+				}))
+			);
 		}
 
 		if (reviewCount === 0) {
