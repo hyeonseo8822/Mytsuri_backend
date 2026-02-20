@@ -3,19 +3,26 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 const { OAuth2Client } = require("google-auth-library");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
+const JWT_ACCESS_TTL = process.env.JWT_ACCESS_TTL || "15m";
+const JWT_REFRESH_TTL = process.env.JWT_REFRESH_TTL || "30d";
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
-const { User, Festival, Review, BannerSlide, Category, City } = require("./models");
-const { bannerSlides, categories, cities, festivals } = require("./data/homeData");
+const { User, Festival, Review, BannerSlide, Category, City, MapFilter } = require("./models");
+const { bannerSlides, categories, cities, festivals, mapFilters, festivalMarkers } = require("./data/data");
 
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(express.json());
+app.use(cookieParser());
 
 
 app.get("/", (req, res) => {
@@ -25,10 +32,60 @@ app.get("/", (req, res) => {
 // ------------------------------------------------------------------
 // Auth & User
 // ------------------------------------------------------------------
-// TODO: 실제 미들웨어로 교체
+const accessCookieOptions = {
+	httpOnly: true,
+	sameSite: "lax",
+	secure: process.env.NODE_ENV === "production",
+	maxAge: 1000 * 60 * 15
+};
+
+const refreshCookieOptions = {
+	httpOnly: true,
+	sameSite: "lax",
+	secure: process.env.NODE_ENV === "production",
+	maxAge: 1000 * 60 * 60 * 24 * 30
+};
+
+const createAccessToken = (userId) =>
+	jwt.sign({ sub: userId }, JWT_ACCESS_SECRET, { expiresIn: JWT_ACCESS_TTL });
+
+const createRefreshToken = (userId) =>
+	jwt.sign({ sub: userId }, JWT_REFRESH_SECRET, { expiresIn: JWT_REFRESH_TTL });
+
+const setAuthCookies = (res, accessToken, refreshToken) => {
+	res.cookie("access_token", accessToken, accessCookieOptions);
+	res.cookie("refresh_token", refreshToken, refreshCookieOptions);
+};
+
+const clearAuthCookies = (res) => {
+	res.clearCookie("access_token", accessCookieOptions);
+	res.clearCookie("refresh_token", refreshCookieOptions);
+};
+
+const getAccessTokenFromRequest = (req) => {
+	const authHeader = req.headers.authorization || "";
+	if (authHeader.startsWith("Bearer ")) {
+		return authHeader.replace("Bearer ", "");
+	}
+	return req.cookies?.access_token;
+};
+
 const authenticateToken = (req, res, next) => {
-	req.user = { id: "demo-user" };
-	next();
+	const token = getAccessTokenFromRequest(req);
+	if (!token) {
+		return res.status(401).json({ message: "로그인이 필요합니다" });
+	}
+	if (!JWT_ACCESS_SECRET) {
+		return res.status(500).json({ message: "JWT_ACCESS_SECRET is not set" });
+	}
+
+	try {
+		const payload = jwt.verify(token, JWT_ACCESS_SECRET);
+		req.user = { id: payload.sub };
+		next();
+	} catch (error) {
+		return res.status(401).json({ message: "토큰이 유효하지 않습니다" });
+	}
 };
 
 app.post("/api/auth/google", async (req, res) => {
@@ -39,6 +96,9 @@ app.post("/api/auth/google", async (req, res) => {
 		}
 		if (!GOOGLE_CLIENT_ID) {
 			return res.status(500).json({ message: "GOOGLE_CLIENT_ID is not set" });
+		}
+		if (!JWT_ACCESS_SECRET || !JWT_REFRESH_SECRET) {
+			return res.status(500).json({ message: "JWT secrets are not set" });
 		}
 
 		const ticket = await googleClient.verifyIdToken({
@@ -71,15 +131,50 @@ app.post("/api/auth/google", async (req, res) => {
 			});
 		}
 
+		const accessToken = createAccessToken(user._id);
+		const refreshToken = createRefreshToken(user._id);
+		setAuthCookies(res, accessToken, refreshToken);
+
 		res.status(200).json({
-			accessToken: "jwt_access",
-			refreshToken: "jwt_refresh",
 			isNewUser,
-			userId: user._id
+			userId: user._id,
+			nickname: user.nickname,
+			profileImg: user.profile_img
 		});
 	} catch (error) {
 		res.status(401).json({ message: "Google 인증 실패" });
 	}
+});
+
+app.post("/api/auth/refresh", async (req, res) => {
+	const refreshToken = req.cookies?.refresh_token;
+	if (!refreshToken) {
+		return res.status(401).json({ message: "리프레시 토큰이 필요합니다" });
+	}
+	if (!JWT_REFRESH_SECRET || !JWT_ACCESS_SECRET) {
+		return res.status(500).json({ message: "JWT secrets are not set" });
+	}
+
+	try {
+		const payload = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
+		const user = await User.findById(payload.sub).lean();
+		if (!user) {
+			return res.status(401).json({ message: "사용자를 찾을 수 없습니다" });
+		}
+
+		const newAccessToken = createAccessToken(user._id);
+		const newRefreshToken = createRefreshToken(user._id);
+		setAuthCookies(res, newAccessToken, newRefreshToken);
+
+		return res.status(200).json({ userId: user._id });
+	} catch (error) {
+		return res.status(401).json({ message: "리프레시 토큰이 유효하지 않습니다" });
+	}
+});
+
+app.post("/api/auth/logout", (req, res) => {
+	clearAuthCookies(res);
+	res.status(200).json({ message: "로그아웃 완료" });
 });
 
 app.put("/api/users/me/preferences", authenticateToken, async (req, res) => {
@@ -185,11 +280,82 @@ app.get("/api/home/festivals", async (req, res) => {
 		image: festival.image,
 		title: festival.name,
 		location: festival.location || `${festival.state || ""} ${festival.city || ""}`.trim(),
-		date: festival.date_label || "",
+		startDate: festival.start_date,
+		endDate: festival.end_date,
 		rating: festival.avg_rating,
 		reviewCount: festival.review_count,
 		bookmarkCount: festival.bookmark_count
 	})));
+});
+
+// ------------------------------------------------------------------
+// Map Data
+// ------------------------------------------------------------------
+app.get("/api/map/filters", async (req, res) => {
+	const filters = await MapFilter.find().sort({ filter_id: 1 }).lean();
+	res.status(200).json(filters.map((filter) => ({
+		id: filter.filter_id,
+		label: filter.label,
+		icon: filter.icon,
+		active: filter.active
+	})));
+});
+
+app.get("/api/map/markers", async (req, res) => {
+	const { prefecture, date, startDate, endDate, type } = req.query;
+	const filter = { longitude: { $exists: true }, latitude: { $exists: true } };
+
+	console.log("📍 마커 요청 쿼리:", { prefecture, date, startDate, endDate, type });
+
+	if (prefecture) {
+		filter.state = prefecture;
+	}
+
+	// 날짜 범위 필터 (startDate, endDate 우선)
+	if (startDate && endDate) {
+		const parsedStart = new Date(startDate);
+		const parsedEnd = new Date(endDate);
+		if (Number.isNaN(parsedStart.getTime()) || Number.isNaN(parsedEnd.getTime())) {
+			return res.status(400).json({ error: "startDate and endDate must be valid ISO dates" });
+		}
+		// 축제 기간이 검색 범위와 겹치는 경우 (AND 조건)
+		filter.start_date = { $lte: parsedEnd };
+		filter.end_date = { $gte: parsedStart };
+		console.log("📅 날짜 범위 필터:", { parsedStart, parsedEnd });
+	} else if (date) {
+		// 단일 날짜 (해당 날짜에 진행 중인 축제)
+		const parsedDate = new Date(date);
+		if (Number.isNaN(parsedDate.getTime())) {
+			return res.status(400).json({ error: "date must be a valid ISO date (YYYY-MM-DD)" });
+		}
+		filter.start_date = { $lte: parsedDate };
+		filter.end_date = { $gte: parsedDate };
+		console.log("📅 단일 날짜 필터:", parsedDate);
+	}
+
+	if (type) {
+		filter.type = type;
+	}
+
+	console.log("🔍 MongoDB 필터:", JSON.stringify(filter, null, 2));
+
+	try {
+		const markers = await Festival.find(filter).lean();
+		console.log(`✅ 조회된 마커 개수: ${markers.length}`);
+		
+		res.status(200).json(markers.map((marker) => ({
+			id: marker._id,
+			name: marker.name,
+			startDate: marker.start_date,
+			endDate: marker.end_date,
+			location: marker.location || `${marker.state || ""} ${marker.city || ""}`.trim(),
+			lon: marker.longitude,
+			lat: marker.latitude
+		})));
+	} catch (error) {
+		console.error("❌ 마커 조회 에러:", error);
+		res.status(500).json({ error: "마커 데이터 조회 실패" });
+	}
 });
 
 // ------------------------------------------------------------------
@@ -242,6 +408,11 @@ const startServer = async () => {
 		await mongoose.connect(MONGO_URI);
 		console.log("MongoDB connected");
 
+		await Festival.updateMany(
+			{ date_label: { $exists: true } },
+			{ $unset: { date_label: "" } }
+		);
+
 		// ------------------------------------------------------------------
 		// Seed data (runs only if collections are empty)
 		// ------------------------------------------------------------------
@@ -251,6 +422,7 @@ const startServer = async () => {
 		const bannerCount = await BannerSlide.countDocuments();
 		const categoryCount = await Category.countDocuments();
 		const cityCount = await City.countDocuments();
+		const mapFilterCount = await MapFilter.countDocuments();
 
 		if (userCount === 0) {
 			await User.create({
@@ -316,6 +488,31 @@ const startServer = async () => {
 				}))
 			);
 		}
+
+		if (mapFilterCount === 0) {
+			await MapFilter.insertMany(mapFilters);
+		} else {
+			await MapFilter.bulkWrite(
+				mapFilters.map((filter) => ({
+					updateOne: {
+						filter: { filter_id: filter.filter_id },
+						update: { $set: filter },
+						upsert: true
+					}
+				}))
+			);
+		}
+
+		// festivalMarkers를 Festival 컬렉션에 추가 (longitude, latitude 필드로 구분)
+		await Festival.bulkWrite(
+			festivalMarkers.map((marker) => ({
+				updateOne: {
+					filter: { name: marker.name, longitude: marker.longitude, latitude: marker.latitude },
+					update: { $set: marker },
+					upsert: true
+				}
+			}))
+		);
 
 		if (reviewCount === 0) {
 			const user = await User.findOne();

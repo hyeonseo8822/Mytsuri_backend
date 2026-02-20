@@ -15,10 +15,11 @@ const festivalSchema = new mongoose.Schema(
 		name: { type: String, required: true },
 		image: { type: String },
 		location: { type: String },
-		date_label: { type: String },
+		type: { type: String },
 		state: { type: String },
 		city: { type: String },
 		address: { type: String },
+		official_site: { type: String },
 		latitude: { type: Number },
 		longitude: { type: Number },
 		start_date: { type: Date },
@@ -54,6 +55,16 @@ const citySchema = new mongoose.Schema(
 		city_id: { type: String, required: true, unique: true },
 		label: { type: String, required: true },
 		image: { type: String, required: true }
+	},
+	{ timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
+);
+
+const mapFilterSchema = new mongoose.Schema(
+	{
+		filter_id: { type: String, required: true, unique: true },
+		label: { type: String, required: true },
+		icon: { type: String },
+		active: { type: Boolean, default: false }
 	},
 	{ timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
 );
@@ -123,6 +134,7 @@ const Festival = mongoose.model("Festival", festivalSchema);
 const BannerSlide = mongoose.model("BannerSlide", bannerSlideSchema);
 const Category = mongoose.model("Category", categorySchema);
 const City = mongoose.model("City", citySchema);
+const MapFilter = mongoose.model("MapFilter", mapFilterSchema);
 const Review = mongoose.model("Review", reviewSchema);
 const FestivalTag = mongoose.model("FestivalTag", festivalTagSchema);
 const ReviewPhoto = mongoose.model("ReviewPhoto", reviewPhotoSchema);
@@ -136,6 +148,7 @@ module.exports = {
 	BannerSlide,
 	Category,
 	City,
+	MapFilter,
 	Review,
 	FestivalTag,
 	ReviewPhoto,
