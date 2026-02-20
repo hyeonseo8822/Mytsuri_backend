@@ -305,8 +305,6 @@ app.get("/api/map/markers", async (req, res) => {
 	const { prefecture, date, startDate, endDate, type } = req.query;
 	const filter = { longitude: { $exists: true }, latitude: { $exists: true } };
 
-	console.log("📍 마커 요청 쿼리:", { prefecture, date, startDate, endDate, type });
-
 	if (prefecture) {
 		filter.state = prefecture;
 	}
@@ -321,7 +319,6 @@ app.get("/api/map/markers", async (req, res) => {
 		// 축제 기간이 검색 범위와 겹치는 경우 (AND 조건)
 		filter.start_date = { $lte: parsedEnd };
 		filter.end_date = { $gte: parsedStart };
-		console.log("📅 날짜 범위 필터:", { parsedStart, parsedEnd });
 	} else if (date) {
 		// 단일 날짜 (해당 날짜에 진행 중인 축제)
 		const parsedDate = new Date(date);
@@ -330,19 +327,14 @@ app.get("/api/map/markers", async (req, res) => {
 		}
 		filter.start_date = { $lte: parsedDate };
 		filter.end_date = { $gte: parsedDate };
-		console.log("📅 단일 날짜 필터:", parsedDate);
 	}
 
 	if (type) {
 		filter.type = type;
 	}
 
-	console.log("🔍 MongoDB 필터:", JSON.stringify(filter, null, 2));
-
 	try {
 		const markers = await Festival.find(filter).lean();
-		console.log(`✅ 조회된 마커 개수: ${markers.length}`);
-		
 		res.status(200).json(markers.map((marker) => ({
 			id: marker._id,
 			name: marker.name,
@@ -353,7 +345,6 @@ app.get("/api/map/markers", async (req, res) => {
 			lat: marker.latitude
 		})));
 	} catch (error) {
-		console.error("❌ 마커 조회 에러:", error);
 		res.status(500).json({ error: "마커 데이터 조회 실패" });
 	}
 });
