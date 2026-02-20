@@ -13,9 +13,13 @@ const userSchema = new mongoose.Schema(
 const festivalSchema = new mongoose.Schema(
 	{
 		name: { type: String, required: true },
+		image: { type: String },
+		location: { type: String },
+		type: { type: String },
 		state: { type: String },
 		city: { type: String },
 		address: { type: String },
+		official_site: { type: String },
 		latitude: { type: Number },
 		longitude: { type: Number },
 		start_date: { type: Date },
@@ -23,6 +27,44 @@ const festivalSchema = new mongoose.Schema(
 		avg_rating: { type: Number, default: 0 },
 		review_count: { type: Number, default: 0 },
 		bookmark_count: { type: Number, default: 0 }
+	},
+	{ timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
+);
+
+const bannerSlideSchema = new mongoose.Schema(
+	{
+		slide_id: { type: Number, required: true, unique: true },
+		image: { type: String, required: true },
+		title: { type: String, required: true },
+		subtitle: { type: String, required: true }
+	},
+	{ timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
+);
+
+const categorySchema = new mongoose.Schema(
+	{
+		category_id: { type: String, required: true, unique: true },
+		label: { type: String, required: true },
+		icon: { type: String, required: true }
+	},
+	{ timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
+);
+
+const citySchema = new mongoose.Schema(
+	{
+		city_id: { type: String, required: true, unique: true },
+		label: { type: String, required: true },
+		image: { type: String, required: true }
+	},
+	{ timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
+);
+
+const mapFilterSchema = new mongoose.Schema(
+	{
+		filter_id: { type: String, required: true, unique: true },
+		label: { type: String, required: true },
+		icon: { type: String },
+		active: { type: Boolean, default: false }
 	},
 	{ timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
 );
@@ -89,6 +131,10 @@ listCollaboratorSchema.index({ list_id: 1, user_id: 1 }, { unique: true });
 
 const User = mongoose.model("User", userSchema);
 const Festival = mongoose.model("Festival", festivalSchema);
+const BannerSlide = mongoose.model("BannerSlide", bannerSlideSchema);
+const Category = mongoose.model("Category", categorySchema);
+const City = mongoose.model("City", citySchema);
+const MapFilter = mongoose.model("MapFilter", mapFilterSchema);
 const Review = mongoose.model("Review", reviewSchema);
 const FestivalTag = mongoose.model("FestivalTag", festivalTagSchema);
 const ReviewPhoto = mongoose.model("ReviewPhoto", reviewPhotoSchema);
@@ -99,6 +145,10 @@ const ListCollaborator = mongoose.model("ListCollaborator", listCollaboratorSche
 module.exports = {
 	User,
 	Festival,
+	BannerSlide,
+	Category,
+	City,
+	MapFilter,
 	Review,
 	FestivalTag,
 	ReviewPhoto,
