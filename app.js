@@ -17,7 +17,7 @@ const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 const JWT_ACCESS_TTL = process.env.JWT_ACCESS_TTL || "15m";
 const JWT_REFRESH_TTL = process.env.JWT_REFRESH_TTL || "30d";
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
-const { User, Festival, Review, BannerSlide, Category, City, MapFilter } = require("./models");
+const { User, Festival, Review, BannerSlide, Category, City, MapFilter, SearchHistory } = require("./models");
 const { bannerSlides, categories, cities, festivals, mapFilters, festivalMarkers } = require("./data/data");
 
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
@@ -139,7 +139,8 @@ app.post("/api/auth/google", async (req, res) => {
 			isNewUser,
 			userId: user._id,
 			nickname: user.nickname,
-			profileImg: user.profile_img
+			profileImg: user.profile_img,
+			accessToken
 		});
 	} catch (error) {
 		res.status(401).json({ message: "Google 인증 실패" });
@@ -222,8 +223,72 @@ app.get("/api/festivals/map", async (req, res) => {
 });
 
 app.get("/api/festivals", async (req, res) => {
-	const { category } = req.query;
-	res.status(200).json([{ festivalId: 5, name: `카테고리: ${category} 축제` }]);
+	const { season, city } = req.query;
+	const filter = {};
+
+	// 시즌 영어 -> 한글 매핑
+	const seasonMap = {
+		summer: "여름축제",
+		winter: "겨울축제",
+		spring: "봄축제",
+		autumn: "가을축제",
+		food: "먹거리축제",
+		local: "특산물축제"
+	};
+
+	// 도시 영어 -> 한글 매핑
+	const cityMap = {
+		kyoto: "교토",
+		osaka: "오사카",
+		nagoya: "나고야",
+		tokyo: "도쿄",
+		fukuoka: "후쿠오카"
+	};
+
+	// 시즌별 필터 (type 필드 사용)
+	if (season && seasonMap[season]) {
+		filter.type = seasonMap[season];
+	}
+
+	// 도시별 필터
+	if (city && cityMap[city]) {
+		filter.city = cityMap[city];
+	}
+
+	try {
+		const festivals = await Festival.find(filter).sort({ created_at: -1 }).lean();
+		res.status(200).json(festivals.map((festival) => {
+			const startDate = new Date(festival.start_date);
+			const endDate = new Date(festival.end_date);
+			const startMonth = startDate.getMonth() + 1;
+			const startDay = startDate.getDate();
+			const endMonth = endDate.getMonth() + 1;
+			const endDay = endDate.getDate();
+			const year = startDate.getFullYear();
+
+			let dateStr;
+			if (startMonth === endMonth) {
+				dateStr = `${year}년 ${startMonth}월 ${startDay}일~${endDay}일`;
+			} else {
+				dateStr = `${year}년 ${startMonth}월 ${startDay}일~${endMonth}월 ${endDay}일`;
+			}
+
+			return {
+				id: festival._id,
+				title: festival.name,
+				image: festival.image,
+				location: festival.location || `${festival.state || ""} ${festival.city || ""}`.trim(),
+				date: dateStr,
+				rating: festival.avg_rating,
+				reviewCount: festival.review_count,
+				bookmarkCount: festival.bookmark_count,
+				season: season || "all",
+				city: festival.city
+			};
+		}));
+	} catch (error) {
+		res.status(500).json({ error: "축제 데이터 조회 실패" });
+	}
 });
 
 app.get("/api/festivals/:festivalId", async (req, res) => {
@@ -240,6 +305,202 @@ app.post("/api/festivals/:festivalId/reviews", async (req, res) => {
 	const { festivalId } = req.params;
 	const { rating, content } = req.body;
 	res.status(201).json({ message: "리뷰 작성 완료", festivalId, rating, content });
+});
+
+// ------------------------------------------------------------------
+// Search
+// ------------------------------------------------------------------
+// 축제 검색
+app.get("/api/search", async (req, res) => {
+	const { q, prefecture, startDate, endDate, type } = req.query;
+
+	if (!q || q.trim().length === 0) {
+		return res.status(400).json({ error: "검색어를 입력해주세요" });
+	}
+
+	console.log("검색 파라미터:", { q, prefecture, startDate, endDate, type });
+
+	const filter = {};
+
+	// 텍스트 검색 (이름, 위치, 주소 등)
+	const escapedQuery = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	console.log("이스케이프된 쿼리:", escapedQuery);
+	
+	const searchRegex = { $regex: escapedQuery, $options: 'i' };
+	console.log("정규식 객체:", searchRegex);
+	
+	filter.$or = [
+		{ name: searchRegex },
+		{ location: searchRegex },
+		{ state: searchRegex },
+		{ city: searchRegex },
+		{ address: searchRegex },
+		{ type: searchRegex }
+	];
+
+	// 지역 필터 (state 필드와 정확히 매칭)
+	// 일본어 행정구역: ~부 (부산부, 오사카부) 또는 ~현 (교토현, 기후현) 또는 ~도 (도쿄도)
+	if (prefecture) {
+		filter.state = prefecture;  // 사용자가 입력한 값 그대로 사용
+	}
+
+	// 날짜 범위 필터
+	if (startDate && endDate) {
+		const parsedStart = new Date(startDate);
+		const parsedEnd = new Date(endDate);
+		if (!Number.isNaN(parsedStart.getTime()) && !Number.isNaN(parsedEnd.getTime())) {
+			filter.start_date = { $lte: parsedEnd };
+			filter.end_date = { $gte: parsedStart };
+		}
+	}
+
+	// 축제 타입 필터
+	if (type) {
+		filter.type = type;
+	}
+
+	console.log("필터 조건:", JSON.stringify(filter, null, 2));
+
+	try {
+		const results = await Festival.find(filter).sort({ bookmark_count: -1 }).limit(20).lean();
+		console.log("검색 결과 개수:", results.length);
+		
+		res.status(200).json(results.map((festival) => {
+			const startDate = new Date(festival.start_date);
+			const endDate = new Date(festival.end_date);
+			const year = startDate.getFullYear();
+			const startMonth = startDate.getMonth() + 1;
+			const startDay = startDate.getDate();
+			const endMonth = endDate.getMonth() + 1;
+			const endDay = endDate.getDate();
+
+			let dateStr;
+			if (startMonth === endMonth) {
+				dateStr = `${year}년 ${startMonth}월 ${startDay}일~${endDay}일`;
+			} else {
+				dateStr = `${year}년 ${startMonth}월 ${startDay}일~${endMonth}월 ${endDay}일`;
+			}
+
+			return {
+				id: festival._id,
+				title: festival.name,
+				image: festival.image,
+				location: festival.location || `${festival.state || ""} ${festival.city || ""}`.trim(),
+				date: dateStr,
+				rating: festival.avg_rating,
+				reviewCount: festival.review_count,
+				bookmarkCount: festival.bookmark_count
+			};
+		}));
+	} catch (error) {
+		console.error("검색 에러:", error);
+		res.status(500).json({ error: "검색 실패" });
+	}
+});
+
+// 최근 검색어 조회 (로그인 사용자만 DB 조회, 비로그인 사용자는 빈 배열)
+app.get("/api/search/history", async (req, res) => {
+	try {
+		const token = req.headers.authorization?.replace("Bearer ", "") || req.cookies?.access_token;
+		
+		if (!token) {
+			// 비로그인 사용자: 빈 배열 반환
+			return res.status(200).json([]);
+		}
+
+		try {
+			const payload = jwt.verify(token, JWT_ACCESS_SECRET);
+			const history = await SearchHistory.find({ user_id: payload.sub })
+				.sort({ searched_at: -1 })
+				.limit(8)
+				.lean();
+			
+			res.status(200).json(history.map((item) => item.query));
+		} catch (error) {
+			// 토큰 검증 실패: 빈 배열 반환
+			res.status(200).json([]);
+		}
+	} catch (error) {
+		res.status(500).json({ error: "검색 기록 조회 실패" });
+	}
+});
+
+// 최근 검색어 저장 (로그인 사용자만 서버에 저장)
+app.post("/api/search/history", async (req, res) => {
+	const { query } = req.body;
+
+	if (!query || query.trim().length === 0) {
+		return res.status(400).json({ error: "검색어를 입력해주세요" });
+	}
+
+	try {
+		const token = req.headers.authorization?.replace("Bearer ", "") || req.cookies?.access_token;
+		
+		if (!token) {
+			// 비로그인 사용자: 성공 응답만 (프론트에서 localStorage 처리)
+			return res.status(201).json({ message: "검색 기록 저장됨 (로컬)" });
+		}
+
+		try {
+			const payload = jwt.verify(token, JWT_ACCESS_SECRET);
+			
+			// 중복 제거: 같은 검색어가 있으면 삭제
+			await SearchHistory.deleteMany({ user_id: payload.sub, query: query.trim() });
+			
+			// 새로 추가
+			await SearchHistory.create({
+				user_id: payload.sub,
+				query: query.trim()
+			});
+
+			res.status(201).json({ message: "검색 기록 저장 완료" });
+		} catch (error) {
+			// 토큰 검증 실패: 성공 응답 (프론트에서 localStorage 처리)
+			res.status(201).json({ message: "검색 기록 저장됨 (로컬)" });
+		}
+	} catch (error) {
+		res.status(500).json({ error: "검색 기록 저장 실패" });
+	}
+});
+
+// 인기 축제 (북마크 많은 순)
+app.get("/api/search/popular", async (req, res) => {
+	try {
+		const popular = await Festival.find({ longitude: { $exists: true }, latitude: { $exists: true } })
+			.sort({ bookmark_count: -1 })
+			.limit(3)
+			.lean();
+
+		res.status(200).json(popular.map((festival) => {
+			const startDate = new Date(festival.start_date);
+			const endDate = new Date(festival.end_date);
+			const year = startDate.getFullYear();
+			const startMonth = startDate.getMonth() + 1;
+			const startDay = startDate.getDate();
+			const endMonth = endDate.getMonth() + 1;
+			const endDay = endDate.getDate();
+
+			let dateStr;
+			if (startMonth === endMonth) {
+				dateStr = `${year}년 ${startMonth}월`;
+			} else {
+				dateStr = `${year}년 ${startMonth}월~${endMonth}월`;
+			}
+
+			return {
+				id: festival._id,
+				title: festival.name,
+				image: festival.image,
+				location: festival.location || `${festival.state || ""} ${festival.city || ""}`.trim(),
+				date: dateStr,
+				rating: festival.avg_rating,
+				reviewCount: festival.review_count,
+				bookmarkCount: festival.bookmark_count
+			};
+		}));
+	} catch (error) {
+		res.status(500).json({ error: "인기 축제 조회 실패" });
+	}
 });
 
 // ------------------------------------------------------------------
