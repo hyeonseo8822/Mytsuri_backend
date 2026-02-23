@@ -35,14 +35,14 @@ app.get("/", (req, res) => {
 const accessCookieOptions = {
 	httpOnly: true,
 	sameSite: "lax",
-	secure: process.env.NODE_ENV === "production",
+	secure: false, // 개발: false, 프로덕션: true
 	maxAge: 1000 * 60 * 15
 };
 
 const refreshCookieOptions = {
 	httpOnly: true,
 	sameSite: "lax",
-	secure: process.env.NODE_ENV === "production",
+	secure: false, // 개발: false, 프로덕션: true
 	maxAge: 1000 * 60 * 60 * 24 * 30
 };
 
@@ -188,7 +188,20 @@ app.put("/api/users/me/preferences", authenticateToken, async (req, res) => {
 });
 
 app.get("/api/users/me", authenticateToken, async (req, res) => {
-	res.status(200).json({ userId: req.user.id, nickname: "축제매니아", preferences: ["여름축제"] });
+	try {
+		const user = await User.findById(req.user.id).select('_id nickname profile_img preference_tags').lean();
+		if (!user) {
+			return res.status(404).json({ message: "사용자를 찾을 수 없습니다" });
+		}
+		res.status(200).json({
+			userId: user._id,
+			nickname: user.nickname,
+			profileImg: user.profile_img,
+			preferences: user.preference_tags || []
+		});
+	} catch (error) {
+		res.status(500).json({ message: "사용자 정보 조회 실패" });
+	}
 });
 
 app.put("/api/users/me", authenticateToken, async (req, res) => {
