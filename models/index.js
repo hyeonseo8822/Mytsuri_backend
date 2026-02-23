@@ -79,55 +79,16 @@ const reviewSchema = new mongoose.Schema(
 	{ timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
 );
 
-const festivalTagSchema = new mongoose.Schema(
+const searchHistorySchema = new mongoose.Schema(
 	{
-		festival_id: { type: mongoose.Schema.Types.ObjectId, ref: "Festival", required: true },
-		tag_name: { type: String, required: true }
+		user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+		query: { type: String, required: true },
+		searched_at: { type: Date, default: Date.now }
 	},
 	{ timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
 );
 
-festivalTagSchema.index({ festival_id: 1, tag_name: 1 }, { unique: true });
-
-const reviewPhotoSchema = new mongoose.Schema(
-	{
-		review_id: { type: mongoose.Schema.Types.ObjectId, ref: "Review", required: true },
-		photo_url: { type: String, required: true },
-		sequence: { type: Number, default: 0 }
-	},
-	{ timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
-);
-
-const listSchema = new mongoose.Schema(
-	{
-		owner_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-		title: { type: String, required: true },
-		bg_image: { type: String },
-		is_public: { type: Boolean, default: false }
-	},
-	{ timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
-);
-
-const listItemSchema = new mongoose.Schema(
-	{
-		list_id: { type: mongoose.Schema.Types.ObjectId, ref: "List", required: true },
-		festival_id: { type: mongoose.Schema.Types.ObjectId, ref: "Festival", required: true }
-	},
-	{ timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
-);
-
-listItemSchema.index({ list_id: 1, festival_id: 1 }, { unique: true });
-
-const listCollaboratorSchema = new mongoose.Schema(
-	{
-		list_id: { type: mongoose.Schema.Types.ObjectId, ref: "List", required: true },
-		user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-		joined_at: { type: Date, default: Date.now }
-	},
-	{ timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
-);
-
-listCollaboratorSchema.index({ list_id: 1, user_id: 1 }, { unique: true });
+searchHistorySchema.index({ user_id: 1, searched_at: -1 });
 
 const User = mongoose.model("User", userSchema);
 const Festival = mongoose.model("Festival", festivalSchema);
@@ -136,11 +97,7 @@ const Category = mongoose.model("Category", categorySchema);
 const City = mongoose.model("City", citySchema);
 const MapFilter = mongoose.model("MapFilter", mapFilterSchema);
 const Review = mongoose.model("Review", reviewSchema);
-const FestivalTag = mongoose.model("FestivalTag", festivalTagSchema);
-const ReviewPhoto = mongoose.model("ReviewPhoto", reviewPhotoSchema);
-const List = mongoose.model("List", listSchema);
-const ListItem = mongoose.model("ListItem", listItemSchema);
-const ListCollaborator = mongoose.model("ListCollaborator", listCollaboratorSchema);
+const SearchHistory = mongoose.model("SearchHistory", searchHistorySchema);
 
 module.exports = {
 	User,
@@ -150,9 +107,5 @@ module.exports = {
 	City,
 	MapFilter,
 	Review,
-	FestivalTag,
-	ReviewPhoto,
-	List,
-	ListItem,
-	ListCollaborator
+	SearchHistory
 };
