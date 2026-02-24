@@ -51,7 +51,7 @@ const cities = [
 const festivals = [
 	{
 		name: "타카야마 여름 축제",
-		image: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=400",
+		image: "https://images.unsplash.com/photo-1508700115892-77a5e0f12e0b?w=400",
 		location: "기후현 타카야마시",
 		type: "여름축제",
 		state: "기후현",
@@ -67,7 +67,7 @@ const festivals = [
 	},
 	{
 		name: "고잔 오쿠리비",
-		image: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=400",
+		image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400",
 		location: "교토",
 		type: "여름축제",
 		state: "교토부",
@@ -83,7 +83,7 @@ const festivals = [
 	},
 	{
 		name: "후쿠오카 하카타 기온 야마카사",
-		image: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=400",
+		image: "https://images.unsplash.com/photo-1519904981063-b0cf448d479e?w=400",
 		location: "후쿠오카현 구시다 신사",
 		type: "여름축제",
 		state: "후쿠오카현",
@@ -179,7 +179,7 @@ const festivals = [
 	},
 	{
 		name: "아오모리 네부타 제",
-		image: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=400",
+		image: "https://images.unsplash.com/photo-1455894127922-68ff32069f50?w=400",
 		location: "아오모리현 아오모리시",
 		type: "여름축제",
 		state: "아오모리현",
@@ -195,7 +195,7 @@ const festivals = [
 	},
 	{
 		name: "교토 기온 마츠리",
-		image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400",
+		image: "https://images.unsplash.com/photo-1496445843519-11e90387b500?w=400",
 		location: "교토부 교토시",
 		type: "여름축제",
 		state: "교토부",
@@ -227,7 +227,7 @@ const festivals = [
 	},
 	{
 		name: "도쿄 라멘 쇼",
-		image: "https://images.unsplash.com/photo-1521305573892-8fbf1d32868d?w=400",
+		image: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400",
 		location: "도쿄 국제전시장",
 		type: "먹거리축제",
 		state: "도쿄도",
@@ -259,7 +259,7 @@ const festivals = [
 	},
 	{
 		name: "오사카 덴진 마츠리",
-		image: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400",
+		image: "https://images.unsplash.com/photo-1539571696357-5a69c006ae1e?w=400",
 		location: "오사카부 오사카시",
 		type: "여름축제",
 		state: "오사카부",
@@ -275,7 +275,7 @@ const festivals = [
 	},
 	{
 		name: "오오타 축제",
-		image: "https://images.unsplash.com/photo-1470229722913-7f419f654b57?w=400",
+		image: "https://images.unsplash.com/photo-1511884642898-4c92249e20b6?w=400",
 		location: "광도현 오오타시",
 		type: "여름축제",
 		state: "광도현",
@@ -307,7 +307,7 @@ const festivals = [
 	},
 	{
 		name: "카누 축제",
-		image: "https://images.unsplash.com/photo-1511884642898-4c92249e20b6?w=400",
+		image: "https://images.unsplash.com/photo-1519904981063-b0cf448d479e?w=400",
 		location: "사가현 가시우시",
 		type: "봄축제",
 		state: "사가현",
@@ -323,7 +323,7 @@ const festivals = [
 	},
 	{
 		name: "나마코 축제",
-		image: "https://images.unsplash.com/photo-1579465490396-b931e2e1c5c6?w=400",
+		image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400",
 		location: "오사카부 모리구치시",
 		type: "먹거리축제",
 		state: "오사카부",
@@ -339,7 +339,7 @@ const festivals = [
 	},
 	{
 		name: "아마우메 축제",
-		image: "https://images.unsplash.com/photo-1599599810694-b5ac4dd64b91?w=400",
+		image: "https://images.unsplash.com/photo-1464207687429-7505649dae38?w=400",
 		location: "삼중현 쿠마노시",
 		type: "여름축제",
 		state: "삼중현",
@@ -355,7 +355,7 @@ const festivals = [
 	},
 	{
 		name: "오미 상인 문화제",
-		image: "https://images.unsplash.com/photo-1496445843519-11e90387b500?w=400",
+		image: "https://images.unsplash.com/photo-1567521464027-f127ff144326?w=400",
 		location: "시가현 오미하치만시",
 		type: "특산물축제",
 		state: "시가현",
@@ -387,7 +387,7 @@ const festivals = [
 	},
 	{
 		name: "토쿠시마 아와오도리",
-		image: "https://images.unsplash.com/photo-1487749518611-4fb6f90cfc20?w=400",
+		image: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400",
 		location: "도쿠시마현 도쿠시마시",
 		type: "여름축제",
 		state: "도쿠시마현",
@@ -403,7 +403,7 @@ const festivals = [
 	},
 	{
 		name: "고토쿠 메론 축제",
-		image: "https://images.unsplash.com/photo-1599599810768-0ac00ac69a23?w=400",
+		image: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400",
 		location: "카가와현 고토쿠시",
 		type: "먹거리축제",
 		state: "카가와현",
@@ -419,7 +419,7 @@ const festivals = [
 	},
 	{
 		name: "아이코 포도 축제",
-		image: "https://images.unsplash.com/photo-1599599810622-b7c4b7b4b4c9?w=400",
+		image: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400",
 		location: "에히메현 아이코시",
 		type: "가을축제",
 		state: "에히메현",
@@ -435,7 +435,7 @@ const festivals = [
 	},
 	{
 		name: "고치 여름축제",
-		image: "https://images.unsplash.com/photo-1519904981063-b0cf448d479e?w=400",
+		image: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=400",
 		location: "고치현 고치시",
 		type: "여름축제",
 		state: "고치현",
@@ -451,7 +451,7 @@ const festivals = [
 	},
 	{
 		name: "사가 열기구 축제",
-		image: "https://images.unsplash.com/photo-1513374519108-7282185c3346?w=400",
+		image: "https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=400",
 		location: "사가현 사가시",
 		type: "가을축제",
 		state: "사가현",
@@ -483,7 +483,7 @@ const festivals = [
 	},
 	{
 		name: "구마모토 진잔 축제",
-		image: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400",
+		image: "https://images.unsplash.com/photo-1533900298318-6b8da08a523e?w=400",
 		location: "구마모토현 구마모토시",
 		type: "봄축제",
 		state: "구마모토현",
@@ -499,7 +499,7 @@ const festivals = [
 	},
 	{
 		name: "오이타 난젠 축제",
-		image: "https://images.unsplash.com/photo-1511379938547-c1f69b13d835?w=400",
+		image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400",
 		location: "오이타현 유후인시",
 		type: "가을축제",
 		state: "오이타현",
@@ -515,7 +515,7 @@ const festivals = [
 	},
 	{
 		name: "미야자키 나이토 축제",
-		image: "https://images.unsplash.com/photo-1493956671692-d2309f8f5a4f?w=400",
+		image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400",
 		location: "미야자키현 미야자키시",
 		type: "겨울축제",
 		state: "미야자키현",
@@ -531,7 +531,7 @@ const festivals = [
 	},
 	{
 		name: "카고시마 오본 축제",
-		image: "https://images.unsplash.com/photo-1487749518611-4fb6f90cfc20?w=400",
+		image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400",
 		location: "카고시마현 카고시마시",
 		type: "여름축제",
 		state: "카고시마현",

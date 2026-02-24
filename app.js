@@ -79,11 +79,16 @@ const startServer = async () => {
 			});
 		}
 
+		const normalizedFestivals = festivals.map((festival) => ({
+			...festival,
+			view_count: festival.view_count ?? festival.bookmark_count ?? 0
+		}));
+
 		if (festivalCount === 0) {
-			await Festival.insertMany(festivals);
+			await Festival.insertMany(normalizedFestivals);
 		} else {
 			await Festival.bulkWrite(
-				festivals.map((festival) => ({
+				normalizedFestivals.map((festival) => ({
 					updateOne: {
 						filter: { name: festival.name },
 						update: { $set: festival },

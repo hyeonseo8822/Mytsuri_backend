@@ -26,7 +26,8 @@ const festivalSchema = new mongoose.Schema(
 		end_date: { type: Date },
 		avg_rating: { type: Number, default: 0 },
 		review_count: { type: Number, default: 0 },
-		bookmark_count: { type: Number, default: 0 }
+		bookmark_count: { type: Number, default: 0 },
+		view_count: { type: Number, default: 0 }
 	},
 	{ timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
 );

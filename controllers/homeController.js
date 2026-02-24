@@ -33,7 +33,7 @@ exports.getCities = async (req, res) => {
 
 // 축제 조회
 exports.getFestivals = async (req, res) => {
-	const festivals = await Festival.find().sort({ created_at: -1 }).limit(20).lean();
+	const festivals = await Festival.find().sort({ bookmark_count: -1 }).limit(20).lean();
 	res.status(200).json(festivals.map((festival) => ({
 		id: festival._id,
 		image: festival.image,

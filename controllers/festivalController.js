@@ -80,6 +80,7 @@ exports.getFestivals = async (req, res) => {
 				rating: festival.avg_rating,
 				reviewCount: festival.review_count,
 				bookmarkCount: festival.bookmark_count,
+				viewCount: festival.view_count ?? festival.bookmark_count ?? 0,
 				season: season || "all",
 				city: festival.city
 			};

@@ -2,7 +2,16 @@ const { MapFilter, Festival } = require("../models");
 
 // 맵 필터 조회
 exports.getFilters = async (req, res) => {
-	const filters = await MapFilter.find().sort({ filter_id: 1 }).lean();
+	const filters = await MapFilter.find().lean();
+	const order = ["all", "region", "date", "type"];
+	const orderIndex = new Map(order.map((id, index) => [id, index]));
+
+	filters.sort((a, b) => {
+		const aIndex = orderIndex.get(a.filter_id) ?? Number.MAX_SAFE_INTEGER;
+		const bIndex = orderIndex.get(b.filter_id) ?? Number.MAX_SAFE_INTEGER;
+		return aIndex - bIndex;
+	});
+
 	res.status(200).json(filters.map((filter) => ({
 		id: filter.filter_id,
 		label: filter.label,
