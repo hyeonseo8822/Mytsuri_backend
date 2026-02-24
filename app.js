@@ -12,6 +12,7 @@ const searchRoutes = require("./routes/searchRoutes");
 const homeRoutes = require("./routes/homeRoutes");
 const mapRoutes = require("./routes/mapRoutes");
 const listRoutes = require("./routes/listRoutes");
+const recommendationRoutes = require("./routes/recommendationRoutes");
 
 // Models and Data
 const { User, Festival, Review, BannerSlide, Category, City, MapFilter } = require("./models");
@@ -39,6 +40,7 @@ app.use("/api/search", searchRoutes);
 app.use("/api/home", homeRoutes);
 app.use("/api/map", mapRoutes);
 app.use("/api/lists", listRoutes);
+app.use("/api/recommendations", recommendationRoutes);
 
 // 404 Handler
 app.use((req, res) => {

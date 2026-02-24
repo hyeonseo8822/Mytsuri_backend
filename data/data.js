@@ -51,7 +51,7 @@ const cities = [
 const festivals = [
 	{
 		name: "타카야마 여름 축제",
-		image: "https://images.unsplash.com/photo-1508700115892-77a5e0f12e0b?w=400",
+		image: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400",
 		location: "기후현 타카야마시",
 		type: "여름축제",
 		state: "기후현",
@@ -179,7 +179,7 @@ const festivals = [
 	},
 	{
 		name: "아오모리 네부타 제",
-		image: "https://images.unsplash.com/photo-1455894127922-68ff32069f50?w=400",
+		image: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=400",
 		location: "아오모리현 아오모리시",
 		type: "여름축제",
 		state: "아오모리현",
@@ -259,7 +259,7 @@ const festivals = [
 	},
 	{
 		name: "오사카 덴진 마츠리",
-		image: "https://images.unsplash.com/photo-1539571696357-5a69c006ae1e?w=400",
+		image: "https://images.unsplash.com/photo-1519904981063-b0cf448d479e?w=400",
 		location: "오사카부 오사카시",
 		type: "여름축제",
 		state: "오사카부",
