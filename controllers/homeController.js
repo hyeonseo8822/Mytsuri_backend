@@ -31,20 +31,78 @@ exports.getCities = async (req, res) => {
 	})));
 };
 
-// 축제 조회
+// 축제 조회 (최적화된 aggregation 사용)
 exports.getFestivals = async (req, res) => {
-	const festivals = await Festival.find().sort({ bookmark_count: -1 }).limit(20).lean();
-	res.status(200).json(festivals.map((festival) => ({
-		id: festival._id,
-		image: festival.image,
-		title: festival.name,
-		location: festival.location || `${festival.state || ""} ${festival.city || ""}`.trim(),
-		startDate: festival.start_date,
-		endDate: festival.end_date,
-		rating: festival.avg_rating,
-		reviewCount: festival.review_count,
-		bookmarkCount: festival.bookmark_count
-	})));
+	try {
+		const festivalsWithReviews = await Festival.aggregate([
+			{
+				$sort: { bookmark_count: -1 }
+			},
+			{
+				$limit: 20
+			},
+			{
+				$lookup: {
+					from: "reviews",
+					localField: "_id",
+					foreignField: "festival_id",
+					as: "reviews"
+				}
+			},
+			{
+				$addFields: {
+					reviewCount: { $size: "$reviews" },
+					avgRating: {
+						$cond: [
+							{ $gt: [{ $size: "$reviews" }, 0] },
+							{
+								$round: [
+									{
+										$divide: [
+											{ $sum: "$reviews.rating" },
+											{ $size: "$reviews" }
+										]
+									},
+									1
+								]
+							},
+							0
+						]
+					}
+				}
+			},
+			{
+				$project: {
+					_id: 0,
+					id: "$_id",
+					image: 1,
+					title: "$name",
+					location: {
+						$ltrim: {
+							input: {
+								$concat: [
+									{ $cond: [{ $eq: ["$state", null] }, "", "$state"] },
+									" ",
+									{ $cond: [{ $eq: ["$city", null] }, "", "$city"] }
+								]
+							},
+							chars: " "
+						}
+					},
+					startDate: "$start_date",
+					endDate: "$end_date",
+					rating: "$avgRating",
+					reviewCount: 1,
+					bookmarkCount: "$bookmark_count"
+				}
+			}
+		]);
+
+		res.status(200).json(festivalsWithReviews);
+	} catch (error) {
+		console.error("Error fetching festivals:", error);
+		res.status(500).json({ message: "축제 데이터를 불러오는데 실패했습니다." });
+	}
 };
 
 module.exports = exports;

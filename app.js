@@ -15,8 +15,8 @@ const listRoutes = require("./routes/listRoutes");
 const recommendationRoutes = require("./routes/recommendationRoutes");
 
 // Models and Data
-const { User, Festival, Review, BannerSlide, Category, City, MapFilter } = require("./models");
-const { bannerSlides, categories, cities, festivals, mapFilters, festivalMarkers } = require("./data/data");
+const { User, Festival, Review, BannerSlide, Category, City, MapFilter, List } = require("./models");
+const { bannerSlides, categories, cities, festivals, mapFilters, lists, reviews } = require("./data/data");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -24,8 +24,12 @@ const MONGO_URI = process.env.MONGO_URI;
 
 // Middleware
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
+
+// Static files (uploads)
+app.use('/uploads', express.static('uploads'));
 
 // Health Check
 app.get("/", (req, res) => {
@@ -71,20 +75,25 @@ const startServer = async () => {
 		const categoryCount = await Category.countDocuments();
 		const cityCount = await City.countDocuments();
 		const mapFilterCount = await MapFilter.countDocuments();
+		const listCount = await List.countDocuments();
 
 		if (userCount === 0) {
 			await User.create({
 				google_id: "demo-google-id",
 				nickname: "축제매니아",
-				profile_img: "https://example.com/profile.png",
+				profile_img: null,
 				preference_tags: ["여름축제", "오사카"]
 			});
 		}
 
-		const normalizedFestivals = festivals.map((festival) => ({
-			...festival,
-			view_count: festival.view_count ?? festival.bookmark_count ?? 0
-		}));
+		const normalizedFestivals = festivals.map((festival) => {
+			const reviewCount = reviews.filter(r => r.festivalName === festival.name).length;
+			return {
+				...festival,
+				view_count: festival.view_count ?? festival.bookmark_count ?? 0,
+				review_count: reviewCount
+			};
+		});
 
 		if (festivalCount === 0) {
 			await Festival.insertMany(normalizedFestivals);
@@ -156,28 +165,78 @@ const startServer = async () => {
 			);
 		}
 
-		// Festival Markers
-		await Festival.bulkWrite(
-			festivalMarkers.map((marker) => ({
-				updateOne: {
-					filter: { name: marker.name, longitude: marker.longitude, latitude: marker.latitude },
-					update: { $set: marker },
-					upsert: true
-				}
-			}))
-		);
+
 
 		if (reviewCount === 0) {
 			const user = await User.findOne();
-			const festival = await Festival.findOne();
+			
+			if (user) {
+				const reviewsToCreate = [];
+				
+				for (const reviewData of reviews) {
+					const festival = await Festival.findOne({ name: reviewData.festivalName });
+					
+					if (festival) {
+						reviewsToCreate.push({
+							user_id: user._id,
+							festival_id: festival._id,
+							rating: reviewData.rating,
+							content: reviewData.content,
+							tags: reviewData.tags,
+							images: reviewData.images
+						});
+					}
+				}
+				
+				if (reviewsToCreate.length > 0) {
+					await Review.insertMany(reviewsToCreate);
+				}
+			}
+		} else {
+			// 기존 reviews를 새로운 festival 데이터로 업데이트
+			const user = await User.findOne();
+			
+			if (user) {
+				// 기존 review들 삭제
+				await Review.deleteMany({ user_id: user._id });
+				
+				const reviewsToCreate = [];
+				
+				for (const reviewData of reviews) {
+					const festival = await Festival.findOne({ name: reviewData.festivalName });
+					
+					if (festival) {
+						reviewsToCreate.push({
+							user_id: user._id,
+							festival_id: festival._id,
+							rating: reviewData.rating,
+							content: reviewData.content,
+							tags: reviewData.tags,
+							images: reviewData.images
+						});
+					}
+				}
+				
+				if (reviewsToCreate.length > 0) {
+					await Review.insertMany(reviewsToCreate);
+				}
+			}
+		}
 
-			if (user && festival) {
-				await Review.create({
-					user_id: user._id,
-					festival_id: festival._id,
-					rating: 5,
-					content: "정말 최고의 축제였어요!"
-				});
+		// Lists
+		if (listCount === 0) {
+			const user = await User.findOne();
+			if (user) {
+				for (const listData of lists) {
+					const festivalDocs = await Festival.find({ name: { $in: listData.festivalNames } });
+					await List.create({
+						user_id: user._id,
+						name: listData.name,
+						coverImage: listData.coverImage,
+						isPublic: listData.isPublic,
+						festivals: festivalDocs.map(f => f._id)
+					});
+				}
 			}
 		}
 

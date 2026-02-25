@@ -5,7 +5,10 @@ const userSchema = new mongoose.Schema(
 		google_id: { type: String, unique: true, sparse: true },
 		nickname: { type: String, required: true },
 		profile_img: { type: String },
-		preference_tags: { type: [String], default: [] }
+		name: { type: String },
+		gender: { type: String },
+		age: { type: String },
+		survey: { type: [{ question: String, answer: String }], default: [] }
 	},
 	{ timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
 );
@@ -24,8 +27,6 @@ const festivalSchema = new mongoose.Schema(
 		longitude: { type: Number },
 		start_date: { type: Date },
 		end_date: { type: Date },
-		avg_rating: { type: Number, default: 0 },
-		review_count: { type: Number, default: 0 },
 		bookmark_count: { type: Number, default: 0 },
 		view_count: { type: Number, default: 0 }
 	},
@@ -75,7 +76,9 @@ const reviewSchema = new mongoose.Schema(
 		user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 		festival_id: { type: mongoose.Schema.Types.ObjectId, ref: "Festival", required: true },
 		rating: { type: Number, min: 1, max: 5, required: true },
-		content: { type: String, required: true }
+		content: { type: String, required: true },
+		tags: { type: [String], default: [] },
+		images: { type: [String], default: [] }
 	},
 	{ timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
 );
@@ -91,6 +94,18 @@ const searchHistorySchema = new mongoose.Schema(
 
 searchHistorySchema.index({ user_id: 1, searched_at: -1 });
 
+const listSchema = new mongoose.Schema(
+	{
+		user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+		name: { type: String, required: true },
+		coverImage: { type: String },
+		isPublic: { type: Boolean, default: true },
+		festivals: [{ type: mongoose.Schema.Types.ObjectId, ref: "Festival" }],
+		sharedWith: { type: String }
+	},
+	{ timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
+);
+
 const User = mongoose.model("User", userSchema);
 const Festival = mongoose.model("Festival", festivalSchema);
 const BannerSlide = mongoose.model("BannerSlide", bannerSlideSchema);
@@ -99,6 +114,7 @@ const City = mongoose.model("City", citySchema);
 const MapFilter = mongoose.model("MapFilter", mapFilterSchema);
 const Review = mongoose.model("Review", reviewSchema);
 const SearchHistory = mongoose.model("SearchHistory", searchHistorySchema);
+const List = mongoose.model("List", listSchema);
 
 module.exports = {
 	User,
@@ -108,5 +124,6 @@ module.exports = {
 	City,
 	MapFilter,
 	Review,
-	SearchHistory
+	SearchHistory,
+	List
 };

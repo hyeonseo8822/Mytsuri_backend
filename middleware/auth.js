@@ -21,11 +21,43 @@ const authenticateToken = (req, res, next) => {
 
 	try {
 		const payload = jwt.verify(token, JWT_ACCESS_SECRET);
-		req.user = { id: payload.sub };
+		req.user = { sub: payload.sub, id: payload.sub };
 		next();
 	} catch (error) {
 		return res.status(401).json({ message: "토큰이 유효하지 않습니다" });
 	}
 };
 
-module.exports = { authenticateToken, getAccessTokenFromRequest };
+const optionalAuthenticateToken = async (req, res, next) => {
+	const token = getAccessTokenFromRequest(req);
+	
+	if (!token) {
+		// 토큰이 없으면 기본 사용자 사용
+		const { User } = require("../models");
+		const defaultUser = await User.findOne();
+		if (defaultUser) {
+			req.user = { sub: defaultUser._id.toString(), id: defaultUser._id.toString() };
+		}
+		return next();
+	}
+	
+	if (!JWT_ACCESS_SECRET) {
+		return res.status(500).json({ message: "JWT_ACCESS_SECRET is not set" });
+	}
+
+	try {
+		const payload = jwt.verify(token, JWT_ACCESS_SECRET);
+		req.user = { sub: payload.sub, id: payload.sub };
+		next();
+	} catch (error) {
+		// 토큰이 유효하지 않으면 기본 사용자 사용
+		const { User } = require("../models");
+		const defaultUser = await User.findOne();
+		if (defaultUser) {
+			req.user = { sub: defaultUser._id.toString(), id: defaultUser._id.toString() };
+		}
+		next();
+	}
+};
+
+module.exports = { authenticateToken, optionalAuthenticateToken, getAccessTokenFromRequest };

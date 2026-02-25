@@ -48,8 +48,11 @@ exports.search = async (req, res) => {
 
 	try {
 		const results = await Festival.find(filter).sort({ bookmark_count: -1 }).limit(20).lean();
-
-		res.status(200).json(results.map((festival) => {
+		
+		// Review 모델 가져오기
+		const { Review } = require("../models");
+		
+		const resultsWithReviews = await Promise.all(results.map(async (festival) => {
 			const startDate = new Date(festival.start_date);
 			const endDate = new Date(festival.end_date);
 			const year = startDate.getFullYear();
@@ -65,17 +68,26 @@ exports.search = async (req, res) => {
 				dateStr = `${year}년 ${startMonth}월 ${startDay}일~${endMonth}월 ${endDay}일`;
 			}
 
+			// 각 축제의 리뷰 실시간 계산
+			const reviews = await Review.find({ festival_id: festival._id }).lean();
+			const reviewCount = reviews.length;
+			const averageRating = reviews.length > 0
+				? Math.round((reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length) * 10) / 10
+				: 0;
+
 			return {
 				id: festival._id,
 				title: festival.name,
 				image: festival.image,
 				location: festival.location || `${festival.state || ""} ${festival.city || ""}`.trim(),
 				date: dateStr,
-				rating: festival.avg_rating,
-				reviewCount: festival.review_count,
+				rating: averageRating,
+				reviewCount: reviewCount,
 				bookmarkCount: festival.bookmark_count
 			};
 		}));
+
+		res.status(200).json(resultsWithReviews);
 	} catch (error) {
 		res.status(500).json({ error: "검색 실패" });
 	}

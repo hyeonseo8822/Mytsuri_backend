@@ -17,10 +17,19 @@ exports.getRecommendations = async (req, res) => {
       return res.json([]);
     }
 
+    // Review 모델 가져오기
+    const { Review } = require("../models");
+
     // 선호도 기반 스코어링
-    const scoredFestivals = allFestivals.map((festival) => {
+    const scoredFestivals = await Promise.all(allFestivals.map(async (festival) => {
       let score = 0;
       const festivalType = (festival.type || "").toLowerCase();
+
+      // 각 축제의 평균 평점 실시간 계산
+      const reviews = await Review.find({ festival_id: festival._id }).lean();
+      const averageRating = reviews.length > 0
+        ? Math.round((reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length) * 10) / 10
+        : 0;
 
       // 1. 선호하는 축제 타입 점수
       if (defaultPreferences.importance.includes("food")) {
@@ -36,22 +45,22 @@ exports.getRecommendations = async (req, res) => {
       }
       
       if (defaultPreferences.importance.includes("photo")) {
-        score += (festival.avg_rating || 0) * 5;
+        score += averageRating * 5;
       }
 
       // 2. 인기도 점수
       const bookmarkScore = (festival.bookmark_count || 0) * 3;
-      const reviewScore = (festival.review_count || 0) * 2;
-      const ratingScore = (festival.avg_rating || 0) * 20;
+      const ratingScore = averageRating * 20;
 
-      score += bookmarkScore + reviewScore + ratingScore;
+      score += bookmarkScore + ratingScore;
 
       return {
         ...festival,
         score,
+        averageRating,
         location: festival.location || festival.city || "미상"
       };
-    });
+    }));
 
     // 스코어 기준으로 정렬, 지역 다양성 고려하여 상위 5개 선택
     const uniqueLocations = new Set();
@@ -71,8 +80,8 @@ exports.getRecommendations = async (req, res) => {
         title: festival.title || festival.name,
         image: festival.image,
         location: festival.location,
-        rating: festival.avg_rating || 0,
-        reviewCount: festival.review_count || 0,
+        rating: festival.averageRating,
+        reviewCount: 0,
         bookmarkCount: festival.bookmark_count || 0,
         start_date: festival.start_date,
         end_date: festival.end_date,
