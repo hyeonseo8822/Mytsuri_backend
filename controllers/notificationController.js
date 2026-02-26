@@ -49,6 +49,20 @@ exports.getNotifications = async (req, res) => {
 					}
 				}
 				
+				// 리스트 축제 제거 알림의 경우
+				if (notification.type === 'list_festival_removed' && notification.data?.listId) {
+					const list = await List.findById(notification.data.listId).lean();
+					if (list) {
+						return {
+							...notification,
+							data: {
+								...notification.data,
+								listName: list.name
+							}
+						};
+					}
+				}
+				
 				// 축제 다가옴 알림은 그대로 반환
 				return notification;
 			})

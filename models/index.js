@@ -115,7 +115,7 @@ const listSchema = new mongoose.Schema(
 const notificationSchema = new mongoose.Schema(
 	{
 		user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-		type: { type: String, enum: ['list_invite', 'review_reply', 'system', 'festival_upcoming', 'list_festival_added'], default: 'list_invite' },
+		type: { type: String, enum: ['list_invite', 'review_reply', 'system', 'festival_upcoming', 'list_festival_added', 'list_festival_removed'], default: 'list_invite' },
 		title: { type: String, required: true },
 		message: { type: String, required: true },
 		data: { type: mongoose.Schema.Types.Mixed },

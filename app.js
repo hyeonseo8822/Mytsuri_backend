@@ -100,11 +100,28 @@ const startServer = async () => {
 		if (festivalCount === 0) {
 			await Festival.insertMany(normalizedFestivals);
 		} else {
+			// bookmark_count는 유지하고, 다른 필드만 업데이트
 			await Festival.bulkWrite(
 				normalizedFestivals.map((festival) => ({
 					updateOne: {
 						filter: { name: festival.name },
-						update: { $set: festival },
+						update: {
+							$set: {
+								image: festival.image,
+								location: festival.location,
+								type: festival.type,
+								state: festival.state,
+								city: festival.city,
+								address: festival.address,
+								official_site: festival.official_site,
+								latitude: festival.latitude,
+								longitude: festival.longitude,
+								start_date: festival.start_date,
+								end_date: festival.end_date,
+								view_count: festival.view_count ?? 0
+							}
+							// bookmark_count는 포함하지 않음 - 기존 값 유지
+						},
 						upsert: true
 					}
 				}))

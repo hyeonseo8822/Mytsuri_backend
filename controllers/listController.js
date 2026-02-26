@@ -376,30 +376,48 @@ exports.addFestivalToList = async (req, res) => {
 				const startDate = new Date(festival.start_date);
 				const daysUntil = Math.floor((startDate - now) / (1000 * 60 * 60 * 24));
 				
-				// 25~35일 사이면 한 달 전 알림 생성
-				if (daysUntil >= 25 && daysUntil <= 35) {
+				// 30일 미만이고 아직 시작 전이면 알림 생성
+				if (daysUntil < 30) {
 					// 리스트의 모든 멤버(소유자 + 협력자)에게 알림
 					const allMembers = [
 						{ user_id: list.user_id },
 						...list.collaborators.filter(c => c.status === 'accepted')
 					];
 					
-					const upcomingNotifications = allMembers.map(member => ({
-						user_id: member.user_id,
-						type: 'festival_upcoming',
-						title: '내 축제',
-						message: `"${festival.name}"이(가) 약 ${daysUntil}일 후 시작돼요!`,
-						data: {
-							listId: list._id,
-							festivalId: festival._id,
-							festivalName: festival.name,
-							daysUntil
-						},
-						actionUrl: `/festival/${festival._id}`
-					}));
+					// 각 멤버에 대해 이미 festival_upcoming 알림이 있는지 확인하고 중복 제거
+					const newNotifications = [];
+					for (const member of allMembers) {
+						const existingNotification = await Notification.findOne({
+							user_id: member.user_id,
+							type: 'festival_upcoming',
+							'data.festivalId': festival._id
+						}).lean();
+						
+						// 같은 축제에 대한 festival_upcoming 알림이 없으면 생성
+						if (!existingNotification) {
+							const isOngoing = daysUntil < 0;
+							newNotifications.push({
+								user_id: member.user_id,
+								type: 'festival_upcoming',
+								title: '내 축제',
+								message: `"${festival.name}"이(가) 곧 시작됩니다!`,
+								data: {
+									listId: list._id,
+									festivalId: festival._id,
+									festivalName: festival.name,
+									daysUntil,
+									isOngoing
+								},
+								actionUrl: `/festival/${festival._id}`
+							});
+						}
+					}
 					
-					await Notification.insertMany(upcomingNotifications);
-					console.log(`축제 D-${daysUntil} 알림 생성 (${allMembers.length}명)`);
+					if (newNotifications.length > 0) {
+						await Notification.insertMany(newNotifications);
+						const status = daysUntil < 0 ? '진행중' : `D-${daysUntil}`;
+						console.log(`축제 알림 생성 - ${festival.name} (${status}, ${newNotifications.length}명)`);
+					}
 				}
 			}
 		} else {
