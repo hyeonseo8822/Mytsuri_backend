@@ -205,7 +205,7 @@ exports.getFestivalDetail = async (req, res) => {
 			description: descriptionExample,
 			hashtags: hashtagsExample,
 			activities: activitiesExample,
-			homepage: festival.homepage || "#",
+			homepage: festival.official_site || "#",
 			photos: reviewPhotos
 		});
 	} catch (error) {
@@ -222,7 +222,7 @@ exports.getFestivalReviews = async (req, res) => {
 		
 		const { Review, User } = require("../models");
 		const reviews = await Review.find({ festival_id: festivalId })
-			.populate('user_id', 'nickname')
+			.populate('user_id', 'name')
 			.sort({ created_at: -1 })
 			.lean();
 		
@@ -234,7 +234,7 @@ exports.getFestivalReviews = async (req, res) => {
 			
 			return {
 				id: review._id,
-				userName: review.user_id?.nickname || '익명',
+				userName: review.user_id?.name || '익명',
 				rating: review.rating,
 				date: dateStr,
 				tags: review.tags || [],

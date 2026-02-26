@@ -28,8 +28,10 @@ const festivalSchema = new mongoose.Schema(
 		longitude: { type: Number },
 		start_date: { type: Date },
 		end_date: { type: Date },
-		bookmark_count: { type: Number, default: 0 },
-		view_count: { type: Number, default: 0 }
+		bookmark_count: { type: Number, default: 0, index: true },
+		view_count: { type: Number, default: 0 },
+		review_count: { type: Number, default: 0 },
+		avg_rating: { type: Number, default: 0 }
 	},
 	{ timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
 );

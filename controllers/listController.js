@@ -117,7 +117,7 @@ exports.getListDetail = async (req, res) => {
 		// 일반 ObjectId 조회
 		const list = await List.findById(listId)
 			.populate("festivals")
-			.populate("collaborators.user_id", "nickname email")
+			.populate("collaborators.user_id", "name email")
 			.lean();
 
 		if (!list) {
@@ -332,8 +332,8 @@ exports.addFestivalToList = async (req, res) => {
 			} catch (e) {
 				console.error('User 조회 실패:', e.message);
 			}
-			console.log('조회된 adderUser:', adderUser?._id, adderUser?.nickname, adderUser?.email);
-			const adderName = adderUser?.nickname || adderUser?.name || '친구';
+			console.log('조회된 adderUser:', adderUser?._id, adderUser?.name, adderUser?.email);
+			const adderName = adderUser?.name || '친구';
 			console.log('adderName:', adderName);
 			
 			// 알림 받을 사람들 목록 (소유자 + 수락한 협력자들, 본인 제외)
@@ -489,8 +489,8 @@ exports.removeFestivalFromList = async (req, res) => {
 			} catch (e) {
 				console.error('User 조회 실패:', e.message);
 			}
-			console.log('조회된 removerUser:', removerUser?._id, removerUser?.nickname, removerUser?.email);
-			const removerName = removerUser?.nickname || removerUser?.name || '친구';
+			console.log('조회된 removerUser:', removerUser?._id, removerUser?.name, removerUser?.email);
+			const removerName = removerUser?.name || '친구';
 			console.log('removerName:', removerName);
 
 			// 알림 받을 사람들 목록 (소유자 + 수락한 협력자들, 본인 제외)
@@ -604,12 +604,12 @@ exports.addCollaborator = async (req, res) => {
 			user_id: targetUser._id,
 			type: 'list_invite',
 			title: '리스트 공유 초대',
-			message: `${inviter?.nickname || '사용자'}님이 "${list.name}" 리스트를 공유했습니다.`,
+			message: `${inviter?.name || '사용자'}님이 "${list.name}" 리스트를 공유했습니다.`,
 			data: {
 				listId: list._id.toString(),
 				listName: list.name,
 				inviterId: userId,
-				inviterName: inviter?.nickname
+				inviterName: inviter?.name
 			},
 			isRead: false
 		});
