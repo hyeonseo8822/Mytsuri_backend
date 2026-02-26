@@ -65,24 +65,22 @@ exports.googleAuth = async (req, res) => {
 
 		const googleId = payload.sub;
 		const email = payload.email || "";
-		const nickname = payload.name || "사용자";
-		const profileImg = payload.picture || "";
+		const name = payload.name || "사용자";
 
 		let user = await User.findOne({ google_id: googleId });
 		let isNewUser = false;
 
 		if (user) {
-			user.nickname = nickname;
+			// 기존 사용자는 name을 덮어쓰지 않음 (사용자가 설정한 값 유지)
 			user.email = email;
-			user.profile_img = profileImg;
 			user = await user.save();
 		} else {
 			isNewUser = true;
 			user = await User.create({
 				google_id: googleId,
 				email,
-				nickname,
-				profile_img: profileImg,
+				name,
+				profile_img: '/uploads/profiles/default.svg',
 				preference_tags: []
 			});
 		}
@@ -94,7 +92,7 @@ exports.googleAuth = async (req, res) => {
 		res.status(200).json({
 			isNewUser,
 			userId: user._id,
-			nickname: user.nickname,
+			nickname: user.name,
 			email: user.email,
 			profileImg: user.profile_img,
 			accessToken
