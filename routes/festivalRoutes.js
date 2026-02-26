@@ -1,5 +1,6 @@
 const express = require("express");
 const festivalController = require("../controllers/festivalController");
+const { authenticateToken } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -10,6 +11,6 @@ router.get("/map", festivalController.getMapFestivals);
 router.get("/", festivalController.getFestivals);
 router.get("/:festivalId", festivalController.getFestivalDetail);
 router.get("/:festivalId/reviews", festivalController.getFestivalReviews);
-router.post("/:festivalId/reviews", festivalController.createFestivalReview);
+router.post("/:festivalId/reviews", authenticateToken, festivalController.createFestivalReview);
 
 module.exports = router;

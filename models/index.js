@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const userSchema = new mongoose.Schema(
 	{
 		google_id: { type: String, unique: true, sparse: true },
+		email: { type: String, unique: true, sparse: true },
 		nickname: { type: String, required: true },
 		profile_img: { type: String },
 		name: { type: String },
@@ -101,7 +102,25 @@ const listSchema = new mongoose.Schema(
 		coverImage: { type: String },
 		isPublic: { type: Boolean, default: true },
 		festivals: [{ type: mongoose.Schema.Types.ObjectId, ref: "Festival" }],
-		sharedWith: { type: String }
+		collaborators: [{
+			user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+			role: { type: String, enum: ['owner', 'editor', 'viewer'], default: 'editor' },
+			status: { type: String, enum: ['pending', 'accepted'], default: 'accepted' },
+			invitedAt: { type: Date, default: Date.now }
+		}]
+	},
+	{ timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
+);
+
+const notificationSchema = new mongoose.Schema(
+	{
+		user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+		type: { type: String, enum: ['list_invite', 'review_reply', 'system', 'festival_upcoming', 'list_festival_added'], default: 'list_invite' },
+		title: { type: String, required: true },
+		message: { type: String, required: true },
+		data: { type: mongoose.Schema.Types.Mixed },
+		isRead: { type: Boolean, default: false },
+		actionUrl: { type: String }
 	},
 	{ timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
 );
@@ -115,6 +134,7 @@ const MapFilter = mongoose.model("MapFilter", mapFilterSchema);
 const Review = mongoose.model("Review", reviewSchema);
 const SearchHistory = mongoose.model("SearchHistory", searchHistorySchema);
 const List = mongoose.model("List", listSchema);
+const Notification = mongoose.model("Notification", notificationSchema);
 
 module.exports = {
 	User,
@@ -125,5 +145,6 @@ module.exports = {
 	MapFilter,
 	Review,
 	SearchHistory,
-	List
+	List,
+	Notification
 };

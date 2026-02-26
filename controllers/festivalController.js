@@ -218,11 +218,15 @@ exports.getFestivalDetail = async (req, res) => {
 exports.getFestivalReviews = async (req, res) => {
 	const { festivalId } = req.params;
 	try {
+		console.log(`리뷰 조회 시작: festivalId=${festivalId}`);
+		
 		const { Review, User } = require("../models");
 		const reviews = await Review.find({ festival_id: festivalId })
 			.populate('user_id', 'nickname')
 			.sort({ created_at: -1 })
 			.lean();
+		
+		console.log(`DB에서 조회된 리뷰 수: ${reviews.length}`, reviews);
 		
 		const formattedReviews = reviews.map(review => {
 			const createdDate = new Date(review.created_at);
@@ -239,6 +243,8 @@ exports.getFestivalReviews = async (req, res) => {
 			};
 		});
 		
+		console.log(`포맷된 리뷰 수: ${formattedReviews.length}`, formattedReviews);
+		
 		res.status(200).json(formattedReviews);
 	} catch (error) {
 		console.error('Get festival reviews error:', error);
@@ -249,8 +255,63 @@ exports.getFestivalReviews = async (req, res) => {
 // 축제 리뷰 작성
 exports.createFestivalReview = async (req, res) => {
 	const { festivalId } = req.params;
-	const { rating, content } = req.body;
-	res.status(201).json({ message: "리뷰 작성 완료", festivalId, rating, content });
+	const { rating, tags = [], body = '', images = [] } = req.body;
+	
+	try {
+		// 입력 검증
+		if (!rating || rating < 1 || rating > 5) {
+			return res.status(400).json({ error: "별점은 1~5 사이여야 합니다." });
+		}
+		
+		if (!body || body.trim().length === 0) {
+			return res.status(400).json({ error: "리뷰 내용을 입력해주세요." });
+		}
+
+		// 사용자 ID 확인
+		if (!req.user || !req.user.id) {
+			return res.status(401).json({ error: "로그인이 필요합니다." });
+		}
+
+		const { Review, Festival } = require("../models");
+
+		// 축제 존재 여부 확인
+		const festival = await Festival.findById(festivalId);
+		if (!festival) {
+			return res.status(404).json({ error: "축제를 찾을 수 없습니다." });
+		}
+
+		// 새 리뷰 생성
+		const newReview = new Review({
+			user_id: req.user.id,
+			festival_id: festivalId,
+			rating: parseInt(rating),
+			content: body.trim(),
+			tags: Array.isArray(tags) ? tags : [],
+			images: Array.isArray(images) ? images : []
+		});
+
+		// DB에 저장
+		await newReview.save();
+
+		console.log('리뷰 작성 완료:', {
+			festivalId,
+			reviewId: newReview._id,
+			userId: req.user.id,
+			rating,
+			tagsCount: tags.length,
+			imagesCount: images.length
+		});
+
+		res.status(201).json({
+			message: "리뷰 작성 완료",
+			festivalId: festivalId,
+			reviewId: newReview._id,
+			rating
+		});
+	} catch (error) {
+		console.error('Create festival review error:', error);
+		res.status(500).json({ error: "리뷰 작성에 실패했습니다." });
+	}
 };
 
 module.exports = exports;

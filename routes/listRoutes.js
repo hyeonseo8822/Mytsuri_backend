@@ -4,13 +4,16 @@ const { authenticateToken, optionalAuthenticateToken } = require("../middleware/
 
 const router = express.Router();
 
-router.get("/", optionalAuthenticateToken, listController.getLists);
+router.get("/", authenticateToken, listController.getLists);
 router.get("/:listId", optionalAuthenticateToken, listController.getListDetail);
-router.post("/", optionalAuthenticateToken, listController.createList);
-router.put("/:listId", optionalAuthenticateToken, listController.updateList);
-router.delete("/:listId", optionalAuthenticateToken, listController.deleteList);
-router.post("/:listId/items", optionalAuthenticateToken, listController.addFestivalToList);
-router.delete("/:listId/items/:festivalId", optionalAuthenticateToken, listController.removeFestivalFromList);
-router.post("/:listId/collaborators", optionalAuthenticateToken, listController.addCollaborator);
+router.post("/", authenticateToken, listController.createList);
+router.put("/:listId", authenticateToken, listController.updateList);
+router.delete("/:listId", authenticateToken, listController.deleteList);
+router.post("/:listId/items", authenticateToken, listController.addFestivalToList);
+router.delete("/:listId/items/:festivalId", authenticateToken, listController.removeFestivalFromList);
+router.post("/:listId/collaborators", authenticateToken, listController.addCollaborator);
+router.post("/:listId/collaborators/accept", authenticateToken, listController.acceptInvitation);
+router.post("/:listId/collaborators/reject", authenticateToken, listController.rejectInvitation);
+router.delete("/:listId/collaborators/:collaboratorId", authenticateToken, listController.removeCollaborator);
 
 module.exports = router;

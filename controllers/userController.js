@@ -5,7 +5,7 @@ const fs = require("fs");
 // 사용자 정보 조회
 exports.getMe = async (req, res) => {
 	try {
-		const user = await User.findById(req.user.id).select('_id nickname profile_img name gender age survey').lean();
+		const user = await User.findById(req.user.id).select('_id nickname profile_img email name gender age survey').lean();
 		if (!user) {
 			return res.status(404).json({ message: "사용자를 찾을 수 없습니다" });
 		}
@@ -14,6 +14,7 @@ exports.getMe = async (req, res) => {
 			userId: user._id,
 			nickname: user.nickname,
 			profileImg: user.profile_img || null,
+			email: user.email || null,
 			name: user.name,
 			gender: user.gender,
 			age: user.age,

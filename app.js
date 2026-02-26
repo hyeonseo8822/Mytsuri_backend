@@ -13,9 +13,10 @@ const homeRoutes = require("./routes/homeRoutes");
 const mapRoutes = require("./routes/mapRoutes");
 const listRoutes = require("./routes/listRoutes");
 const recommendationRoutes = require("./routes/recommendationRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 
 // Models and Data
-const { User, Festival, Review, BannerSlide, Category, City, MapFilter, List } = require("./models");
+const { User, Festival, Review, BannerSlide, Category, City, MapFilter, List, Notification } = require("./models");
 const { bannerSlides, categories, cities, festivals, mapFilters, lists, reviews } = require("./data/data");
 
 const app = express();
@@ -45,6 +46,7 @@ app.use("/api/home", homeRoutes);
 app.use("/api/map", mapRoutes);
 app.use("/api/lists", listRoutes);
 app.use("/api/recommendations", recommendationRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // 404 Handler
 app.use((req, res) => {

@@ -64,6 +64,7 @@ exports.googleAuth = async (req, res) => {
 		}
 
 		const googleId = payload.sub;
+		const email = payload.email || "";
 		const nickname = payload.name || "사용자";
 		const profileImg = payload.picture || "";
 
@@ -72,12 +73,14 @@ exports.googleAuth = async (req, res) => {
 
 		if (user) {
 			user.nickname = nickname;
+			user.email = email;
 			user.profile_img = profileImg;
 			user = await user.save();
 		} else {
 			isNewUser = true;
 			user = await User.create({
 				google_id: googleId,
+				email,
 				nickname,
 				profile_img: profileImg,
 				preference_tags: []
@@ -92,6 +95,7 @@ exports.googleAuth = async (req, res) => {
 			isNewUser,
 			userId: user._id,
 			nickname: user.nickname,
+			email: user.email,
 			profileImg: user.profile_img,
 			accessToken
 		});
