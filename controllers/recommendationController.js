@@ -167,3 +167,5 @@ exports.getRecommendations = async (req, res) => {
     res.status(500).json({ error: "추천 생성 실패: " + error.message });
   }
 };
+
+
